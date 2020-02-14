@@ -116,3 +116,8 @@ CREATE TABLE department
                 LEFT JOIN employee E2 ON E1.manager_id = E2.id
                 INNER JOIN role ON E1.role_id = role.id
                 INNER JOIN department ON role.department_id = department.id;
+
+            -- 4 Table with concatenation and sort by
+            SELECT E1.id AS ID, CONCAT(E1.first_name, " ", E1.last_name) AS "Employee Name", role.title AS Position, department.name AS Department, role.salary AS Salary, CONCAT(E2.first_name, " ", E2.last_name) AS Manager
+            FROM employee E1 LEFT JOIN employee E2 ON E1.manager_id = E2.id INNER JOIN role ON E1.role_id = role.id INNER JOIN department ON role.department_id = department.id
+            ORDER BY E1.id;
