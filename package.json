@@ -1,0 +1,25 @@
+{
+  "name": "employee-tracker",
+  "version": "1.0.0",
+  "description": "Uses Node to interface with user to build and maintain a durable database tracking employee details",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "watch": "nodemon server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agtravis/employee-tracker.git"
+  },
+  "author": "George Travis",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/agtravis/employee-tracker/issues"
+  },
+  "homepage": "https://github.com/agtravis/employee-tracker#readme",
+  "dependencies": {
+    "console.table": "^0.10.0",
+    "inquirer": "^7.0.4",
+    "mysql": "^2.18.1"
+  }
+}
