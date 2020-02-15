@@ -68,10 +68,10 @@ async function addRole() {
     }
     const role = await inquirer.prompt(prompts.whichRole);
     const newRole = new classConstructor.Role(role.role, role.salary, roleId);
-    console.log('Adding a role...\n');
+    console.log('\nAdding a role...\n');
     connection.query('INSERT INTO role SET ?', newRole, (err, res) => {
       if (err) throw err;
-      console.log(`${res.affectedRows} role added.\n`);
+      console.log(`\n${res.affectedRows} role added.\n`);
       userSelect();
     });
   });
@@ -80,12 +80,12 @@ async function addRole() {
 async function addDepartment() {
   const { name } = await inquirer.prompt(prompts.whichDepartment);
   const department = new classConstructor.Department(name);
-  console.log('Adding a department...\n');
+  console.log('\nAdding a department...\n');
   connection.query('INSERT INTO department SET ?', department, (err, res) => {
     if (err) throw err;
-    console.log(`${res.affectedRows} department added.\n`);
+    console.log(`\n${res.affectedRows} department added.\n`);
+    userSelect();
   });
-  userSelect();
 }
 
 async function viewEmployees() {
