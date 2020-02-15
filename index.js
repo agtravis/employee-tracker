@@ -24,11 +24,68 @@ async function userSelect() {
   const { selection } = await inquirer.prompt(prompts.select);
   switch (selection) {
     case 'View all employees':
-      await viewEmployees();
+      viewEmployees();
+      break;
+    case 'Add data':
+      addDataChoice();
       break;
     default:
       connection.end();
   }
+}
+
+async function addDataChoice() {
+  const { selection } = await inquirer.prompt(prompts.addDataPrompt);
+  switch (selection) {
+    case 'Department':
+      addDepartment();
+      break;
+    case 'Role':
+      addRole();
+      break;
+    default:
+      addEmployee();
+  }
+}
+
+async function addRole() {
+  connection.query('SELECT * FROM department', async (err, res) => {
+    if (err) throw err;
+    const departments = await inquirer.prompt([
+      {
+        name: 'department',
+        type: 'rawlist',
+        choices: () => res.map(res => res.name),
+        message: 'To which department does this role belong?'
+      }
+    ]);
+    let roleId;
+    for (const row of res) {
+      if (row.name === departments.department) {
+        roleId = row.id;
+        continue;
+      }
+    }
+    const role = await inquirer.prompt(prompts.whichRole);
+    const newRole = new classConstructor.Role(role.role, role.salary, roleId);
+    console.log('Adding a role...\n');
+    connection.query('INSERT INTO role SET ?', newRole, (err, res) => {
+      if (err) throw err;
+      console.log(`${res.affectedRows} role added.\n`);
+      userSelect();
+    });
+  });
+}
+
+async function addDepartment() {
+  const { name } = await inquirer.prompt(prompts.whichDepartment);
+  const department = new classConstructor.Department(name);
+  console.log('Adding a department...\n');
+  connection.query('INSERT INTO department SET ?', department, (err, res) => {
+    if (err) throw err;
+    console.log(`${res.affectedRows} department added.\n`);
+  });
+  userSelect();
 }
 
 async function viewEmployees() {
