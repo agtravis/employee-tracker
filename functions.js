@@ -3,5 +3,143 @@
 const inquirer = require('inquirer');
 const prompts = require('./prompts');
 const index = require('./index');
+const classConstructor = require('./class');
 
-module.exports = {};
+async function userSelect(connection) {
+  const { selection } = await inquirer.prompt(prompts.select);
+  switch (selection) {
+    case 'View all employees':
+      viewEmployees(connection);
+      break;
+    case 'Add data':
+      addDataChoice(connection);
+      break;
+    default:
+      connection.end(connection);
+  }
+}
+
+async function addDataChoice(connection) {
+  const { selection } = await inquirer.prompt(prompts.addDataPrompt);
+  switch (selection) {
+    case 'Department':
+      addDepartment(connection);
+      break;
+    case 'Role':
+      addRole(connection);
+      break;
+    default:
+      addEmployee(connection);
+  }
+}
+
+async function addEmployee(connection) {
+  connection.query('SELECT * FROM role', async (err, res) => {
+    if (err) throw err;
+    const { role } = await inquirer.prompt([
+      {
+        name: 'role',
+        type: 'rawlist',
+        choices: () => res.map(res => res.title),
+        message: 'What role will this employee have?'
+      }
+    ]);
+    let roleId;
+    for (const row of res) {
+      if (row.title === role) {
+        roleId = row.id;
+        continue;
+      }
+    }
+    // console.log(roleId);
+    connection.query('SELECT * FROM employee', async (err, res) => {
+      if (err) throw err;
+      const { manager } = await inquirer.prompt([
+        {
+          name: 'manager',
+          type: 'rawlist',
+          choices: () => res.map(res => `${res.first_name} ${res.last_name}`),
+          message: 'To whom will this employee be accountable?'
+        }
+      ]);
+      let managerId;
+      for (const row of res) {
+        row.fullName = `${row.first_name} ${row.last_name}`;
+        console.log(row);
+        if (row.fullName === manager) {
+          managerId = row.id;
+          continue;
+        }
+      }
+      console.log(managerId);
+    });
+  });
+}
+
+async function addRole(connection) {
+  connection.query('SELECT * FROM department', async (err, res) => {
+    if (err) throw err;
+    const departments = await inquirer.prompt([
+      {
+        name: 'department',
+        type: 'rawlist',
+        choices: () => res.map(res => res.name),
+        message: 'To which department does this role belong?'
+      }
+    ]);
+    let roleId;
+    for (const row of res) {
+      if (row.name === departments.department) {
+        roleId = row.id;
+        continue;
+      }
+    }
+    const role = await inquirer.prompt(prompts.whichRole);
+    const newRole = new classConstructor.Role(role.role, role.salary, roleId);
+    console.log('\nAdding a role...\n');
+    connection.query('INSERT INTO role SET ?', newRole, (err, res) => {
+      if (err) throw err;
+      console.log(`\n${res.affectedRows} role added.\n`);
+      userSelect(connection);
+    });
+  });
+}
+
+async function addDepartment(connection) {
+  const { name } = await inquirer.prompt(prompts.whichDepartment);
+  const department = new classConstructor.Department(name);
+  console.log('\nAdding a department...\n');
+  connection.query('INSERT INTO department SET ?', department, (err, res) => {
+    if (err) throw err;
+    console.log(`\n${res.affectedRows} department added.\n`);
+    userSelect(connection);
+  });
+}
+
+async function viewEmployees(connection) {
+  connection.query(
+    `SELECT
+      E1.id AS ID, CONCAT(E1.first_name, " ", E1.last_name) AS "Employee Name", role.title AS Position, department.name AS Department, role.salary AS Salary, CONCAT(E2.first_name, " ", E2.last_name) AS Manager
+      FROM employee E1 LEFT JOIN employee E2
+      ON E1.manager_id = E2.id
+      INNER JOIN role
+      ON E1.role_id = role.id
+      INNER JOIN department
+      ON role.department_id = department.id
+      ORDER BY E1.id;`,
+    (err, res) => {
+      if (err) throw err;
+      console.log('\n');
+      console.table(res);
+    }
+  );
+  userSelect(connection);
+}
+
+module.exports = {
+  userSelect,
+  addDataChoice,
+  addRole,
+  addDepartment,
+  viewEmployees
+};
