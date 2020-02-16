@@ -4,14 +4,14 @@ const select = {
   type: 'list',
   message: 'What would you like to do?',
   name: 'selection',
-  choices: ['View all employees', 'Add data', 'Exit']
+  choices: ['View data', 'Add data', 'Exit']
 };
 
 const addDataPrompt = {
   type: 'list',
   message: 'What would you like to add?',
   name: 'selection',
-  choices: ['Department', 'Role', 'Employee']
+  choices: ['Department', 'Role', 'Employee', 'Go back']
 };
 
 const whichDepartment = {
@@ -46,7 +46,24 @@ const addEmployeePrompts = [
   }
 ];
 
+const viewDataChoicePrompts = [
+  {
+    type: 'list',
+    message: 'What data would you like to see?',
+    choices: [
+      'All departments',
+      'All roles',
+      'All employees',
+      'Employees by manager',
+      'Departmental budgets',
+      'Go back'
+    ],
+    name: 'selection'
+  }
+];
+
 module.exports = {
+  viewDataChoicePrompts,
   addEmployeePrompts,
   whichRole,
   whichDepartment,

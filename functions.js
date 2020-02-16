@@ -8,8 +8,8 @@ const classConstructor = require('./class');
 async function userSelect(connection) {
   const { selection } = await inquirer.prompt(prompts.select);
   switch (selection) {
-    case 'View all employees':
-      viewEmployees(connection);
+    case 'View data':
+      viewDataChoice(connection);
       break;
     case 'Add data':
       addDataChoice(connection);
@@ -17,6 +17,69 @@ async function userSelect(connection) {
     default:
       connection.end(connection);
   }
+}
+
+async function viewDataChoice(connection) {
+  const { selection } = await inquirer.prompt(prompts.viewDataChoicePrompts);
+  switch (selection) {
+    case 'All departments':
+      viewData(connection, 'department');
+      break;
+    case 'All roles':
+      viewData(connection, 'role');
+      break;
+    case 'All employees':
+      viewEmployees(connection);
+      break;
+    case 'Employees by manager':
+      chooseManager(connection);
+      break;
+    default:
+      userSelect(connection);
+  }
+}
+
+async function chooseManager(connection) {
+  connection.query('SELECT * FROM employee', async (err, res) => {
+    if (err) throw err;
+    let managerFullName;
+    const { manager } = await inquirer.prompt([
+      {
+        name: 'manager',
+        type: 'rawlist',
+        choices: () => res.map(res => `${res.first_name} ${res.last_name}`),
+        message: 'Whose team would you like to see?'
+      }
+    ]);
+    let managerId;
+    for (const row of res) {
+      row.fullName = `${row.first_name} ${row.last_name}`;
+      if (row.fullName === manager) {
+        managerId = row.id;
+        managerFullName = row.fullName;
+        continue;
+      }
+    }
+    // console.log(managerId);
+    connection.query(
+      `SELECT CONCAT(first_name, ' ', last_name) AS 'Employees managed by ${managerFullName}:' FROM employee WHERE manager_id = ${managerId}`,
+      (err, res) => {
+        if (err) throw err;
+        console.log(`\n`);
+        console.table(res);
+      }
+    );
+    viewDataChoice(connection);
+  });
+}
+
+function viewData(connection, tableName) {
+  connection.query(`SELECT * FROM ${tableName};`, (err, res) => {
+    if (err) throw err;
+    console.log(`\n${tableName} table:\n`);
+    console.table(res);
+    viewDataChoice(connection);
+  });
 }
 
 async function addDataChoice(connection) {
@@ -28,8 +91,11 @@ async function addDataChoice(connection) {
     case 'Role':
       addRole(connection);
       break;
-    default:
+    case 'Employee':
       addEmployee(connection);
+      break;
+    default:
+      userSelect(connection);
   }
 }
 
@@ -148,7 +214,7 @@ async function viewEmployees(connection) {
       console.table(res);
     }
   );
-  userSelect(connection);
+  viewDataChoice(connection);
 }
 
 module.exports = {
