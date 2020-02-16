@@ -33,7 +33,21 @@ const whichRole = [
   }
 ];
 
+const addEmployeePrompts = [
+  {
+    type: 'input',
+    message: "What is the new employee's first name?",
+    name: 'firstName'
+  },
+  {
+    type: 'input',
+    message: "What is the new employee's last name?",
+    name: 'lastName'
+  }
+];
+
 module.exports = {
+  addEmployeePrompts,
   whichRole,
   whichDepartment,
   addDataPrompt,

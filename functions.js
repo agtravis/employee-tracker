@@ -34,6 +34,8 @@ async function addDataChoice(connection) {
 }
 
 async function addEmployee(connection) {
+  const newEmployeeName = await inquirer.prompt(prompts.addEmployeePrompts);
+  console.log(newEmployeeName);
   connection.query('SELECT * FROM role', async (err, res) => {
     if (err) throw err;
     const { role } = await inquirer.prompt([
@@ -51,7 +53,6 @@ async function addEmployee(connection) {
         continue;
       }
     }
-    // console.log(roleId);
     connection.query('SELECT * FROM employee', async (err, res) => {
       if (err) throw err;
       const { manager } = await inquirer.prompt([
@@ -65,13 +66,27 @@ async function addEmployee(connection) {
       let managerId;
       for (const row of res) {
         row.fullName = `${row.first_name} ${row.last_name}`;
-        console.log(row);
         if (row.fullName === manager) {
           managerId = row.id;
           continue;
         }
       }
-      console.log(managerId);
+      const newEmployee = new classConstructor.Employee(
+        newEmployeeName.firstName,
+        newEmployeeName.lastName,
+        roleId,
+        managerId
+      );
+      console.log('\nAdding a new employee...');
+      connection.query(
+        'INSERT INTO employee SET ?',
+        newEmployee,
+        (err, res) => {
+          if (err) throw err;
+          console.log(`\n${res.affectedRows} employee added.\n`);
+          viewEmployees(connection);
+        }
+      );
     });
   });
 }
