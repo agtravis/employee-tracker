@@ -36,6 +36,60 @@ async function updateOrDelete(connection) {
   }
 }
 
+async function deleteData(connection) {
+  const { selection } = await inquirer.prompt(prompts.deleteDataPrompts);
+  switch (selection) {
+    case 'A department':
+      deleteDepartment(connection);
+      break;
+    case 'A role':
+      deleteRole(connection);
+      break;
+    case 'An employee':
+      deleteEmployee(connection);
+      break;
+    default:
+      updateOrDelete(connection);
+  }
+}
+
+async function deleteDepartment(connection) {
+  connection.query(
+    `SELECT * FROM role RIGHT JOIN department
+  ON role.department_id = department.id
+  WHERE role.id IS NULL;`,
+    async (err, res) => {
+      if (err) throw err;
+      const choices = res.map(res => `${res.name}`);
+      choices.push('Go back');
+      const { department } = await inquirer.prompt([
+        {
+          name: 'department',
+          type: 'rawlist',
+          choices: choices,
+          message:
+            'Which department would you like to delete?\n(Only departments with no roles can be deleted)'
+        }
+      ]);
+      if (department === 'Go back') {
+        deleteData(connection);
+      } else {
+        connection.query(
+          `DELETE FROM department WHERE name = '${department}';
+      `,
+          (err, res) => {
+            if (err) throw err;
+            console.log(
+              `\n${res.affectedRows} department deleted (${department})\n`
+            );
+            deleteData(connection);
+          }
+        );
+      }
+    }
+  );
+}
+
 async function updateData(connection) {
   const { selection } = await inquirer.prompt(prompts.updateChoicePrompts);
   switch (selection) {

@@ -76,7 +76,17 @@ const viewDataChoicePrompts = [
   }
 ];
 
+const deleteDataPrompts = [
+  {
+    type: 'list',
+    message: 'What would you like to delete?',
+    choices: ['A department', 'A Role', 'An employee', 'Go back'],
+    name: 'selection'
+  }
+];
+
 module.exports = {
+  deleteDataPrompts,
   updateChoicePrompts,
   updateOrDeletePrompts,
   viewDataChoicePrompts,
