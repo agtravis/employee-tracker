@@ -213,29 +213,37 @@ async function viewDataChoice(connection) {
 async function viewDepartmentBudget(connection) {
   connection.query('SELECT * FROM department', async (err, res) => {
     if (err) throw err;
+    const choices = res.map(res => `${res.name}`);
+    choices.push('All departments');
     const { department } = await inquirer.prompt([
       {
         name: 'department',
         type: 'rawlist',
-        choices: () => res.map(res => `${res.name}`),
+        choices: choices,
         message: 'For which department would you like to see the budget?'
       }
     ]);
+    let query = ``;
+    if (department === 'All departments') {
+      query = `SELECT sum(salary) AS total
+      FROM employee INNER JOIN role
+      ON employee.role_id = role.id
+      INNER JOIN department ON role.department_id = department.id;`;
+    } else {
+      query = `SELECT sum(salary) AS total
+      FROM employee INNER JOIN role
+      ON employee.role_id = role.id
+      INNER JOIN department ON role.department_id = department.id
+      WHERE department.name = '${department}';`;
+    }
     // console.log(department);
-    connection.query(
-      `SELECT sum(salary) AS total
-    FROM employee INNER JOIN role
-    ON employee.role_id = role.id
-    INNER JOIN department ON role.department_id = department.id
-    WHERE department.name = '${department}';`,
-      async (err, res) => {
-        if (err) throw err;
-        console.log(
-          `\nThe current budget for the ${department} department is $${res[0].total}\n`
-        );
-        viewDataChoice(connection);
-      }
-    );
+    connection.query(query, async (err, res) => {
+      if (err) throw err;
+      console.log(
+        `\nThe current budget for the ${department} department is $${res[0].total}\n`
+      );
+      viewDataChoice(connection);
+    });
   });
 }
 
