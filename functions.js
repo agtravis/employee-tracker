@@ -71,7 +71,6 @@ async function updateEmployeeManager(connection) {
         continue;
       }
     }
-
     connection.query('SELECT * FROM employee', async (err, res) => {
       if (err) throw err;
       let managerFullName;
@@ -203,9 +202,41 @@ async function viewDataChoice(connection) {
     case 'Employees by manager':
       chooseManager(connection);
       break;
+    case 'Departmental budgets':
+      viewDepartmentBudget(connection);
+      break;
     default:
       userSelect(connection);
   }
+}
+
+async function viewDepartmentBudget(connection) {
+  connection.query('SELECT * FROM department', async (err, res) => {
+    if (err) throw err;
+    const { department } = await inquirer.prompt([
+      {
+        name: 'department',
+        type: 'rawlist',
+        choices: () => res.map(res => `${res.name}`),
+        message: 'For which department would you like to see the budget?'
+      }
+    ]);
+    // console.log(department);
+    connection.query(
+      `SELECT sum(salary) AS total
+    FROM employee INNER JOIN role
+    ON employee.role_id = role.id
+    INNER JOIN department ON role.department_id = department.id
+    WHERE department.name = '${department}';`,
+      async (err, res) => {
+        if (err) throw err;
+        console.log(
+          `\nThe current budget for the ${department} department is $${res[0].total}\n`
+        );
+        viewDataChoice(connection);
+      }
+    );
+  });
 }
 
 async function chooseManager(connection) {
