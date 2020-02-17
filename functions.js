@@ -75,21 +75,27 @@ async function updateEmployeeManager(connection) {
     connection.query('SELECT * FROM employee', async (err, res) => {
       if (err) throw err;
       let managerFullName;
+      const choices = res.map(res => `${res.first_name} ${res.last_name}`);
+      choices.push('None');
       const { manager } = await inquirer.prompt([
         {
           name: 'manager',
           type: 'rawlist',
-          choices: () => res.map(res => `${res.first_name} ${res.last_name}`),
+          choices: choices,
           message: 'Who is their new manager?'
         }
       ]);
       let managerId;
-      for (const row of res) {
-        row.fullName = `${row.first_name} ${row.last_name}`;
-        if (row.fullName === manager) {
-          managerId = row.id;
-          managerFullName = row.fullName;
-          continue;
+      if (manager === 'None') {
+        managerId = null;
+      } else {
+        for (const row of res) {
+          row.fullName = `${row.first_name} ${row.last_name}`;
+          if (row.fullName === manager) {
+            managerId = row.id;
+            managerFullName = row.fullName;
+            continue;
+          }
         }
       }
       connection.query(
@@ -284,20 +290,28 @@ async function addEmployee(connection) {
     }
     connection.query('SELECT * FROM employee', async (err, res) => {
       if (err) throw err;
+      let managerFullName;
+      const choices = res.map(res => `${res.first_name} ${res.last_name}`);
+      choices.push('None');
       const { manager } = await inquirer.prompt([
         {
           name: 'manager',
           type: 'rawlist',
-          choices: () => res.map(res => `${res.first_name} ${res.last_name}`),
+          choices: choices,
           message: 'To whom will this employee be accountable?'
         }
       ]);
       let managerId;
-      for (const row of res) {
-        row.fullName = `${row.first_name} ${row.last_name}`;
-        if (row.fullName === manager) {
-          managerId = row.id;
-          continue;
+      if (manager === 'None') {
+        managerId = null;
+      } else {
+        for (const row of res) {
+          row.fullName = `${row.first_name} ${row.last_name}`;
+          if (row.fullName === manager) {
+            managerId = row.id;
+            managerFullName = row.fullName;
+            continue;
+          }
         }
       }
       const newEmployee = new classConstructor.Employee(
