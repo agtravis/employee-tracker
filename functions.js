@@ -50,6 +50,74 @@ async function updateData(connection) {
   }
 }
 
+async function updateEmployeeManager(connection) {
+  connection.query('SELECT * FROM employee', async (err, res) => {
+    if (err) throw err;
+    let employeeFullName;
+    const { employee } = await inquirer.prompt([
+      {
+        name: 'employee',
+        type: 'rawlist',
+        choices: () => res.map(res => `${res.first_name} ${res.last_name}`),
+        message: 'Which employee has a new manager?'
+      }
+    ]);
+    let employeeId;
+    for (const row of res) {
+      row.fullName = `${row.first_name} ${row.last_name}`;
+      if (row.fullName === employee) {
+        employeeId = row.id;
+        employeeFullName = row.fullName;
+        continue;
+      }
+    }
+
+    connection.query('SELECT * FROM employee', async (err, res) => {
+      if (err) throw err;
+      let managerFullName;
+      const { manager } = await inquirer.prompt([
+        {
+          name: 'manager',
+          type: 'rawlist',
+          choices: () => res.map(res => `${res.first_name} ${res.last_name}`),
+          message: 'Who is their new manager?'
+        }
+      ]);
+      let managerId;
+      for (const row of res) {
+        row.fullName = `${row.first_name} ${row.last_name}`;
+        if (row.fullName === manager) {
+          managerId = row.id;
+          managerFullName = row.fullName;
+          continue;
+        }
+      }
+      connection.query(
+        `
+      UPDATE employee
+      SET manager_id = ?
+      WHERE id = ?;`,
+        [managerId, employeeId],
+        (err, res) => {
+          if (err) throw err;
+          console.log(`${res.affectedRows} employee updated.\n\n`);
+          connection.query(
+            `SELECT CONCAT(e1.first_name, ' ', e1.last_name) AS Employee, CONCAT(e2.first_name, ' ', e2.last_name) AS 'New Manager'
+            FROM employee e1 INNER JOIN employee e2 ON e1.manager_id = e2.id
+            WHERE e1.id = ?;`,
+            employeeId,
+            (err, res) => {
+              if (err) throw err;
+              console.table(res);
+              updateData(connection);
+            }
+          );
+        }
+      );
+    });
+  });
+}
+
 async function updateEmployeeRole(connection) {
   connection.query('SELECT * FROM employee', async (err, res) => {
     if (err) throw err;
