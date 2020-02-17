@@ -4,7 +4,14 @@ const select = {
   type: 'list',
   message: 'What would you like to do?',
   name: 'selection',
-  choices: ['View data', 'Add data', 'Exit']
+  choices: ['View data', 'Add data', 'Update or delete data', 'Exit']
+};
+
+const updateOrDeletePrompts = {
+  type: 'list',
+  message: 'Would you like to ... ?',
+  name: 'selection',
+  choices: ['Update data', 'Delete data', 'Go back']
 };
 
 const addDataPrompt = {
@@ -46,6 +53,13 @@ const addEmployeePrompts = [
   }
 ];
 
+const updateChoicePrompts = {
+  type: 'list',
+  message: 'What would you like to update?',
+  name: 'selection',
+  choices: ['An employee role', "An employee's manager", 'Go back']
+};
+
 const viewDataChoicePrompts = [
   {
     type: 'list',
@@ -63,6 +77,8 @@ const viewDataChoicePrompts = [
 ];
 
 module.exports = {
+  updateChoicePrompts,
+  updateOrDeletePrompts,
   viewDataChoicePrompts,
   addEmployeePrompts,
   whichRole,

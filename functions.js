@@ -14,9 +14,104 @@ async function userSelect(connection) {
     case 'Add data':
       addDataChoice(connection);
       break;
+    case 'Update or delete data':
+      updateOrDelete(connection);
+      break;
     default:
       connection.end(connection);
   }
+}
+
+async function updateOrDelete(connection) {
+  const { selection } = await inquirer.prompt(prompts.updateOrDeletePrompts);
+  switch (selection) {
+    case 'Update data':
+      updateData(connection);
+      break;
+    case 'Delete data':
+      deleteData(connection);
+      break;
+    default:
+      userSelect(connection);
+  }
+}
+
+async function updateData(connection) {
+  const { selection } = await inquirer.prompt(prompts.updateChoicePrompts);
+  switch (selection) {
+    case 'An employee role':
+      updateEmployeeRole(connection);
+      break;
+    case "An employee's manager":
+      updateEmployeeManager(connection);
+      break;
+    default:
+      updateOrDelete(connection);
+  }
+}
+
+async function updateEmployeeRole(connection) {
+  connection.query('SELECT * FROM employee', async (err, res) => {
+    if (err) throw err;
+    let employeeFullName;
+    const { employee } = await inquirer.prompt([
+      {
+        name: 'employee',
+        type: 'rawlist',
+        choices: () => res.map(res => `${res.first_name} ${res.last_name}`),
+        message: 'Whose role would you like to change?'
+      }
+    ]);
+    let employeeId;
+    for (const row of res) {
+      row.fullName = `${row.first_name} ${row.last_name}`;
+      if (row.fullName === employee) {
+        employeeId = row.id;
+        employeeFullName = row.fullName;
+        continue;
+      }
+    }
+    connection.query('SELECT * FROM role', async (err, res) => {
+      if (err) throw err;
+      const { role } = await inquirer.prompt([
+        {
+          name: 'role',
+          type: 'rawlist',
+          choices: () => res.map(res => res.title),
+          message: 'What role will this employee have?'
+        }
+      ]);
+      let roleId;
+      for (const row of res) {
+        if (row.title === role) {
+          roleId = row.id;
+          continue;
+        }
+      }
+      connection.query(
+        `
+      UPDATE employee
+      SET role_id = ?
+      WHERE id = ?;`,
+        [roleId, employeeId],
+        (err, res) => {
+          if (err) throw err;
+          console.log(`${res.affectedRows} employee updated.\n\n`);
+          connection.query(
+            `SELECT CONCAT(employee.first_name, ' ', employee.last_name) AS Employee, role.title AS 'New Role'
+            FROM employee INNER JOIN role ON employee.role_id = role.id
+            WHERE employee.id = ?;`,
+            employeeId,
+            (err, res) => {
+              if (err) throw err;
+              console.table(res);
+              updateData(connection);
+            }
+          );
+        }
+      );
+    });
+  });
 }
 
 async function viewDataChoice(connection) {
