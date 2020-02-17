@@ -53,6 +53,87 @@ async function deleteData(connection) {
   }
 }
 
+async function deleteEmployee(connection) {
+  connection.query(
+    `SELECT * FROM employee e1 RIGHT JOIN  employee e2
+  ON e1.manager_id = e2.id
+  WHERE e1.id IS NULL;`,
+    async (err, res) => {
+      if (err) throw err;
+      let employeeFullName;
+      const choices = res.map(res => `${res.first_name} ${res.last_name}`);
+      choices.push('Go back');
+      const { employee } = await inquirer.prompt([
+        {
+          name: 'employee',
+          type: 'rawlist',
+          choices: choices,
+          message:
+            'Which employee would you like to delete?\n(NOTE: Managers cannot be deleted if they currently have a team working for them,\nYou must assign those employees a new manager first)'
+        }
+      ]);
+      let employeeId;
+      if (employee === 'Go back') {
+        deleteData(connection);
+      } else {
+        for (const row of res) {
+          row.fullName = `${row.first_name} ${row.last_name}`;
+          if (row.fullName === employee) {
+            employeeId = row.id;
+            employeeFullName = row.fullName;
+            continue;
+          }
+        }
+        connection.query(
+          `DELETE FROM employee WHERE id = '${employeeId}'`,
+          (err, res) => {
+            if (err) throw err;
+            console.log(
+              `\n${res.affectedRows} employee deleted (${employeeFullName})\n`
+            );
+            deleteData(connection);
+          }
+        );
+      }
+    }
+  );
+}
+
+async function deleteRole(connection) {
+  connection.query(
+    `SELECT * FROM employee RIGHT JOIN  role
+    ON employee.role_id = role.id
+    WHERE employee.id IS NULL;`,
+    async (err, res) => {
+      if (err) throw err;
+      const choices = res.map(res => `${res.title}`);
+      choices.push('Go back');
+      const { role } = await inquirer.prompt([
+        {
+          name: 'role',
+          type: 'rawlist',
+          choices: choices,
+          message:
+            'Which role would you like to delete?\n(Only roles with no employees can be deleted)'
+        }
+      ]);
+      if (role === 'Go back') {
+        deleteData(connection);
+      } else {
+        connection.query(
+          `DELETE FROM role WHERE title = '${role}';
+      `,
+          (err, res) => {
+            if (err) throw err;
+            console.log(`\n${res.affectedRows} role deleted (${role})\n`);
+            deleteData(connection);
+          }
+        );
+      }
+    }
+  );
+}
+
 async function deleteDepartment(connection) {
   connection.query(
     `SELECT * FROM role RIGHT JOIN department
@@ -293,6 +374,9 @@ async function viewDepartmentBudget(connection) {
     // console.log(department);
     connection.query(query, async (err, res) => {
       if (err) throw err;
+      if (res[0].total === null) {
+        res[0].total = '0';
+      }
       console.log(
         `\nThe current budget for the ${department} department is $${res[0].total}\n`
       );
