@@ -2,7 +2,6 @@
 
 const inquirer = require('inquirer');
 const prompts = require('./prompts');
-const index = require('./index');
 const classConstructor = require('./class');
 
 async function userSelect(connection) {
@@ -75,36 +74,53 @@ async function viewEmployees(connection) {
 }
 
 async function chooseManager(connection) {
-  connection.query('SELECT * FROM employee', async (err, res) => {
-    if (err) throw err;
-    let managerFullName;
-    const { manager } = await inquirer.prompt([
-      {
-        name: 'manager',
-        type: 'rawlist',
-        choices: () => res.map(res => `${res.first_name} ${res.last_name}`),
-        message: 'Whose team would you like to see?'
+  connection.query(
+    `SELECT E1.id, E1.first_name, E1.last_name,
+  CONCAT(E2.first_name, " ", E2.last_name) AS Manager FROM employee E1
+  LEFT JOIN employee E2 ON E1.manager_id = E2.id
+  INNER JOIN role ON E1.role_id = role.id
+  INNER JOIN department ON role.department_id = department.id
+  WHERE CONCAT(E2.first_name, " ", E2.last_name) IS NOT NULL`,
+    async (err, res) => {
+      if (err) throw err;
+      const choices = [];
+      for (let i = 0; i < res.length; ++i) {
+        if (!choices.includes(res[i].Manager)) {
+          choices.push(res[i].Manager);
+        }
       }
-    ]);
-    let managerId;
-    for (const row of res) {
-      row.fullName = `${row.first_name} ${row.last_name}`;
-      if (row.fullName === manager) {
-        managerId = row.id;
-        managerFullName = row.fullName;
-        continue;
-      }
-    }
-    connection.query(
-      `SELECT CONCAT(first_name, ' ', last_name) AS 'Employees managed by ${managerFullName}:' FROM employee WHERE manager_id = ${managerId}`,
-      (err, res) => {
+      let managerFullName;
+      const { manager } = await inquirer.prompt([
+        {
+          name: 'manager',
+          type: 'rawlist',
+          choices: choices,
+          message: 'Whose team would you like to see?'
+        }
+      ]);
+      let managerId;
+      connection.query(`SELECT * FROM employee`, (err, res) => {
         if (err) throw err;
-        console.log(`\n`);
-        console.table(res);
-      }
-    );
-    viewDataChoice(connection);
-  });
+        for (const row of res) {
+          row.fullName = `${row.first_name} ${row.last_name}`;
+          if (row.fullName === manager) {
+            managerId = row.id;
+            managerFullName = row.fullName;
+            continue;
+          }
+        }
+        connection.query(
+          `SELECT CONCAT(first_name, ' ', last_name) AS 'Employees managed by ${managerFullName}:' FROM employee WHERE manager_id = ${managerId}`,
+          (err, res) => {
+            if (err) throw err;
+            console.log(`\n`);
+            console.table(res);
+          }
+        );
+        viewDataChoice(connection);
+      });
+    }
+  );
 }
 
 async function viewDepartmentBudget(connection) {
