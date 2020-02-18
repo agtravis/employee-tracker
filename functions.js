@@ -76,10 +76,8 @@ async function viewEmployees(connection) {
 async function chooseManager(connection) {
   connection.query(
     `SELECT E1.id, E1.first_name, E1.last_name,
-  CONCAT(E2.first_name, " ", E2.last_name) AS Manager FROM employee E1
-  LEFT JOIN employee E2 ON E1.manager_id = E2.id
-  INNER JOIN role ON E1.role_id = role.id
-  INNER JOIN department ON role.department_id = department.id
+  CONCAT(E2.first_name, " ", E2.last_name) AS Manager
+  FROM employee E1 LEFT JOIN employee E2 ON E1.manager_id = E2.id
   WHERE CONCAT(E2.first_name, " ", E2.last_name) IS NOT NULL`,
     async (err, res) => {
       if (err) throw err;
