@@ -31,7 +31,7 @@ async function viewDataChoice(connection) {
       viewData(connection, 'role');
       break;
     case 'All employees':
-      viewEmployees(connection);
+      viewEmployees(connection, '');
       break;
     case 'Employees by manager':
       chooseManager(connection);
@@ -53,7 +53,7 @@ function viewData(connection, tableName) {
   });
 }
 
-async function viewEmployees(connection) {
+async function viewEmployees(connection, nextFunction) {
   connection.query(
     `SELECT
       E1.id AS ID, CONCAT(E1.first_name, " ", E1.last_name) AS "Employee Name", role.title AS Position, department.name AS Department, role.salary AS Salary, CONCAT(E2.first_name, " ", E2.last_name) AS Manager
@@ -70,7 +70,11 @@ async function viewEmployees(connection) {
       console.table(res);
     }
   );
-  viewDataChoice(connection);
+  if (nextFunction === 'from add employee') {
+    addDataChoice(connection);
+  } else {
+    viewDataChoice(connection);
+  }
 }
 
 async function chooseManager(connection) {
@@ -275,7 +279,7 @@ async function addEmployee(connection) {
         (err, res) => {
           if (err) throw err;
           console.log(`\n${res.affectedRows} employee added.\n`);
-          viewEmployees(connection);
+          viewEmployees(connection, 'from add employee');
         }
       );
     });
