@@ -3,6 +3,7 @@
 const inquirer = require('inquirer');
 const prompts = require('./prompts');
 const classConstructor = require('./class');
+const textArt = require('./textArt');
 
 async function userSelect(connection) {
   const { selection } = await inquirer.prompt(prompts.select);
@@ -17,6 +18,7 @@ async function userSelect(connection) {
       updateOrDelete(connection);
       break;
     default:
+      console.log(textArt.finish);
       connection.end(connection);
   }
 }
