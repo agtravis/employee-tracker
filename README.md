@@ -23,7 +23,13 @@ This app uses SQL (Structured Query Language) queries within JavaScript running 
 
 ## Screenshots
 
-![Note-taker](./assets/images/enter-notes.PNG)
+![Landing Page](./assets/images/start.PNG)
+
+This is what the user sees when they first run the app.
+
+![View All Employees](./assets/images/view-all-employees.PNG)
+
+A screen shot of when the user chooses to see all employees.
 
 ## Technologies
 
