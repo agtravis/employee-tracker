@@ -114,7 +114,8 @@ async function chooseManager(connection) {
           }
         }
         connection.query(
-          `SELECT CONCAT(first_name, ' ', last_name) AS 'Employees managed by ${managerFullName}:' FROM employee WHERE manager_id = ${managerId}`,
+          `SELECT CONCAT(first_name, ' ', last_name) AS 'Employees managed by ${managerFullName}:' FROM employee WHERE manager_id = ?`,
+          [managerId],
           (err, res) => {
             if (err) throw err;
             console.log(`\n`);
@@ -151,9 +152,9 @@ async function viewDepartmentBudget(connection) {
       FROM employee INNER JOIN role
       ON employee.role_id = role.id
       INNER JOIN department ON role.department_id = department.id
-      WHERE department.name = '${department}';`;
+      WHERE department.name = ?;`;
     }
-    connection.query(query, async (err, res) => {
+    connection.query(query, [department], async (err, res) => {
       if (err) throw err;
       if (res[0].total === null) {
         res[0].total = '0';
@@ -492,8 +493,9 @@ async function deleteDepartment(connection) {
         deleteData(connection);
       } else {
         connection.query(
-          `DELETE FROM department WHERE name = '${department}';
+          `DELETE FROM department WHERE name = ?;
       `,
+          [department],
           (err, res) => {
             if (err) throw err;
             console.log(
@@ -529,8 +531,9 @@ async function deleteRole(connection) {
         deleteData(connection);
       } else {
         connection.query(
-          `DELETE FROM role WHERE title = '${role}';
+          `DELETE FROM role WHERE title = ?;
       `,
+          [role],
           (err, res) => {
             if (err) throw err;
             console.log(`\n${res.affectedRows} role deleted (${role})\n`);
@@ -574,7 +577,8 @@ async function deleteEmployee(connection) {
           }
         }
         connection.query(
-          `DELETE FROM employee WHERE id = '${employeeId}'`,
+          `DELETE FROM employee WHERE id = ?`,
+          [employeeId],
           (err, res) => {
             if (err) throw err;
             console.log(
