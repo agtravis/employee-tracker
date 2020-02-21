@@ -123,7 +123,7 @@ Here is a more complicated function:
                             }
                         }
                         connection.query(
-                        `SELECT CONCAT(first_name, ' ', last_name) AS 'Employees managed by ${managerFullName}:' FROM employee WHERE manager_id = ${managerId}`,
+                        `SELECT CONCAT(first_name, ' ', last_name) AS 'Employees managed by ${managerFullName}:' FROM employee WHERE manager_id = ?;`, [managerId],
                         (err, res) => {
                             if (err) throw err;
                             console.log(`\n`);
