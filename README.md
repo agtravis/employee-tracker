@@ -171,3 +171,4 @@ As far as the code goes, I would like to split up my `functions.js` file, splitt
 ## Contact
 
 Created by [@agtravis](https://agtravis.github.io/)
+View in my [portfolio](https://agtravis.github.io/portfolio.html)
