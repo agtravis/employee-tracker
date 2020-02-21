@@ -33,139 +33,140 @@ A screen shot of when the user chooses to see all employees.
 
 ## Technologies
 
-This package was written in JavaScript using Node.js, and is based around the npm package `Express`. If the GitHub repo is forked, in order to edit the code the user can run `npm i` to install this dependency.
+Here are the package.json dependencies:
 
-The entry point for this app is `server.js`. On load, this file requires the modules for `express`, `fs`, and `path`, calls `express` into the variable `app`, and then sets the URL encoding and json features using `app.use`.
+"dependencies": {
+"console.table": "^0.10.0",
+"inquirer": "^7.0.4",
+"mysql": "^2.18.1"
+}
 
-Next some routes are defined. Since the front end was created by someone other than myself and I wrote the back end to align with it, I set a route to align with each of the `CSS` and `JavaScript` external files.
+This package was written in JavaScript using Node.js, and the core is based around the npm package `Inquirer`, and uses `MySQL` to interact with the database. `console.table` is the package used to restyle the default `console.table` method, and this is optional and user preferential. If the GitHub repo is forked, in order to edit the code the user can run `npm i` to install this dependency.
 
-There are only 2 routes that deliver `get` responses that respond with a webpage, the main (`/`) and the atual app renders the functions at the route `/notes`. There is also a route that handles everything else that might be entered to direct the user to a `404 not found` page.
-
-There are then 3 different routes for interacting with the API, these will be detailed in the Code Examples below.
-
-Finally, the app listens to a port which is defined as `process.env.PORT` so that it can upload to Heroku.
+The entry point for this app is `index.js`. On load, this file requires the modules mentioned above, then establishes the properties of the `connection` object, which holds all the information about how to interact with the database (the IP host (local in this case) and the port, the user and password for access to the database, and the name of the database). This object is passed to the connect function, and is continually passed around through all the functions until the user chooses to exit. The reason for this is because the functions are fully contained within their own module.
 
 ## Code Examples
 
-'GET':
+There are basically two kinds of functions in this app. The first, and more basic, exlusively relies on user choices, and this is basically navigating 'levels' of the app's interface. For example:
 
-    app.get('/api/notes', (req, res) => {
-        let notes = '';
-        fs.readFile('./db.json', 'utf8', (err, data) => {
+    async function userSelect(connection) {
+        const { selection } = await inquirer.prompt(prompts.select);
+            switch (selection) {
+                case 'View data':
+                    viewDataChoice(connection);
+                    break;
+                case 'Add data':
+                    addDataChoice(connection);
+                    break;
+                case 'Update or delete data':
+                    updateOrDelete(connection);
+                    break;
+                default:
+                    console.log(textArt.finish);
+                    connection.end(connection);
+        }
+    }
+
+This function is the entry point for the app. It presents the user with a few choices from which the user will navigate to their desired interaction or report. The prompts that do not require reading the database are stored in another module.
+
+In this function, the user choices take them through to general and related areas of information or functions. All the 'view' type actions are grouped together in their own selection menu, so are all the different 'add' functions that are available. The update and delete functions are somewhat similar so they split up in the next sub-menu. They are similar because they require making SQL queries in order to present the user with specific choices (as do some of the view functions, but that would be too much seperation at this point).
+
+Finally, this function has as its default response to end the connection to the database. This will happen when the user chooses exit. This is which the `connection` object is passed around, Since the user may choose to head to this menu and exit at any time.
+
+Here is an example of a basic SQL query and how it interacts with the JavaScript:
+
+    function viewData(connection, tableName) {
+        connection.query(`SELECT * FROM ${tableName};`, (err, res) => {
             if (err) throw err;
-            notes = JSON.parse(data);
-            for (let i = 0; i < notes.length; ++i) {
-                if (!notes[i].id) {
-                    notes[i].id = notes[i].title.replace(/ +/g, '-');
-                }
-                for (let j = i + 1; j < notes.length; ++j) {
-                    if (notes[i].id === notes[j].id) {
-                        notes[j].id += '-x';
+            console.log(`\n${tableName} table:\n`);
+            console.table(res);
+            viewDataChoice(connection);
+        });
+    }
+
+This is actually a function that takes two arguments. The first is the `connection` object, and the second is a string representing the table that is being viewed. Technically it could be used on ANY table since all it does is return ALL columns and records from that table. I only use it twice, because I prefer to return only useful and relevant information to the user. This function uses a `template literal` to insert the table name as a string into the SQL query. Any potential errors are handled per the standard Node.JS syntax, and then the results are logged to the console. Finally the function calls another function to return the user to the previous level of choices.
+
+Here is a more complicated function:
+
+    async function chooseManager(connection) {
+        connection.query(
+            `SELECT E1.id, E1.first_name, E1.last_name,
+        CONCAT(E2.first_name, " ", E2.last_name) AS Manager
+        FROM employee E1 LEFT JOIN employee E2 ON E1.manager_id = E2.id
+        WHERE CONCAT(E2.first_name, " ", E2.last_name) IS NOT NULL`,
+            async (err, res) => {
+                if (err) throw err;
+                    const choices = [];
+                    for (let i = 0; i < res.length; ++i) {
+                        if (!choices.includes(res[i].Manager)) {
+                            choices.push(res[i].Manager);
+                        }
                     }
-                }
+                    let managerFullName;
+                    const { manager } = await inquirer.prompt([
+                        {
+                            name: 'manager',
+                            type: 'rawlist',
+                            choices: choices,
+                            message: 'Whose team would you like to see?'
+                        }
+                    ]);
+                    let managerId;
+                    connection.query(`SELECT * FROM employee`, (err, res) => {
+                        if (err) throw err;
+                        for (const row of res) {
+                            row.fullName = `${row.first_name} ${row.last_name}`;
+                            if (row.fullName === manager) {
+                                managerId = row.id;
+                                managerFullName = row.fullName;
+                                continue;
+                            }
+                        }
+                        connection.query(
+                        `SELECT CONCAT(first_name, ' ', last_name) AS 'Employees managed by ${managerFullName}:' FROM employee WHERE manager_id = ${managerId}`,
+                        (err, res) => {
+                            if (err) throw err;
+                            console.log(`\n`);
+                            console.table(res);
+                        }
+                    );
+                    viewDataChoice(connection);
+                });
             }
-            fs.writeFile('./db.json', JSON.stringify(notes), 'utf8', err => {
-                if (err) throw err;
-            });
-            res.json(notes);
-        });
-    });
+        );
+    }
 
-This route first establishes an empty variable to be an empty string. Next it reads the JSON file and writes the content into the variable as a JSON object. If a nested object of the JSON object does not contain a specific property 'id', it is assigned based on the text contained in the title. Later in the code, this id is going to be passed in the URL, so a `replace` method is run on the text (using `regex`) to ensure that all space characters are replaced with a hyphen. It also accounts for if the user has two notes with the same title, but different descriptions. This is then written as a new file that overwrites the existing file, and then the HTML file is sent to the browser - The HTML file has JavaScript that calls the API to populate the page with the notes being 'stored' in the JSON file (the JSON file is acting as a pseudo-database).
+This function is still within the view functions group. Here, the user wants to view a team which is run by a specific manager. This could be run just as a `SELECT ... WHERE` query, however this requires the user to choose their manager from an entire list of employees. It would be easier to only have to select from employees who are actually managers, and so that's what this function does.
 
-'POST':
+The SQL query statement is a `SELF JOIN` where the manager_id is the foreign key. When the response is sent back, the code reads to see which names are in the manager column, and adds distinct names as they appear. This could be streamlined by applying an `INDEX`. These names are then presented, along with a 'None of the above' option, as part of the `inquirer.prompt` choices.
 
-    app.post('/api/notes', (req, res) => {
-        const newNote = req.body;
-        let notes = '';
-        fs.readFile('./db.json', 'utf8', (err, data) => {
-            if (err) throw err;
-            notes = JSON.parse(data);
-            notes.push(newNote);
-            for (let i = 0; i < notes.length; ++i) {
-                if (!notes[i].id) {
-                    notes[i].id = notes[i].title.replace(/ +/g, '-');
-                }
-                for (let j = i + 1; j < notes.length; ++j) {
-                    if (notes[i].id === notes[j].id) {
-                        notes[j].id += '-x';
-                    }
-                }
-            }
-            fs.writeFile('./db.json', JSON.stringify(notes), 'utf8', err => {
-                if (err) throw err;
-            });
-        });
-        res.sendFile(path.join(__dirname, 'notes.html'));
-    });
+Due to the fact that I prefer to present the user with full names as one field via `CONCAT()`, I need to create a property on the response object to also concatenate the user choice to line up, and be able to reference the ID columns on which the tables are `JOIN`ed.
 
-The POST request routing is almost the same as the GET. This is because it is still reading the file and writing the file, but in between these two `fs` functions, it is inserting a new object passed to it from the AJAX POST request.
+All functions are really only variations on this pattern. Some require nested queries in order to correctly assign data to fit the schema correctly and ensure consistency.
 
-'DELETE':
+**NOTE**:
 
-    app.delete('/api/notes/:id', (req, res) => {
-        const item = req.params.id;
-        let notes = '';
-        fs.readFile('./db.json', 'utf8', (err, data) => {
-            if (err) throw err;
-            notes = JSON.parse(data);
-            for (const note of notes) {
-                if (note.id === item) {
-                    notes.splice(notes.indexOf(note), 1);
-                }
-            }
-            fs.writeFile('./db.json', JSON.stringify(notes), 'utf8', err => {
-                if (err) throw err;
-            });
-        });
-        res.sendFile(path.join(__dirname, 'notes.html'));
-    });
+My `seed.sql` file sets up the tables to include the option to `ON DELETE CASCADE`. This means that when an item from a table is selection for deletion but it has a foreign key constraint on it that would ordinarily block the delete, it instead not only allows the delete, but also takes any associated records from other tables into oblivion with it. This is obviously something that is a choice of an administrator, and so I have opted to enable this feature, but the way my actual functions are set up does not present the user with an opportunity to perform this kind of delete. I filter user choices using various `JOIN`s to only display options that would result in a clean `DELETE` if there were no `CASCADE` enabled. If the user accesses the database directly via `MySQL`, they would be able to write their own code to delete anything they wanted, and I would assume in a real world application, the user would not have that access.
 
-In the routing for the DELETE request, a parameter is sent back to the handling. This is the variable that is used to make sure the correct object from the JSON response is deleted, before the file is written again. Since this is taken from the object storing the content that the HTML is displaying, I have written the code to ensure that the property value is in a format that can be passed through the URL.
-
-Once the data has been accessed, a `for...of` loop runs on it which checks each object to see if the id property matches the id that has been passed. Once that has been matched, it is removed from the array, and the document is rewritten and then passed to the browser.
-
-Here is the JavaScript (actually jQuery) for deleting a note (condensed for relevance):
-
-    const handleNoteDelete = function(event) {
-        event.stopPropagation();
-        const note = $(this).parent('.list-group-item').data();
-        //JavaScript functions
-        deleteNote(note.id).then(function() {
-            //code to render HTML
-        });
-    };
-
-This code block shows that when a user clicks on the delete icon, the data attached to the parent node of that icon is passed as a variable to the `deleteNote` function, which...:
-
-    const deleteNote = function(id) {
-        return $.ajax({
-            url: 'api/notes/' + id,
-            method: 'DELETE'
-        });
-    };
-
-...can be seen in this AJAX request. The property `id` is sent via the URL back to the route where it is handled as a wildcard. Again, since it is passed through the URL, we can see it needs to be a string with the same rules that apply to a URL, hence using a `replace` method (here with regex) to remove any space characters.
+I decided it would be easier for the long term to set up a table with this feature enabled and then block access to it, rather than potentially decide to update the table at a later point.
 
 ## Setup
 
-Nothing is stored on the user's device, so they will see the same list however they access the app. To use it they simply visit the URL https://agtravis-note-taker.herokuapp.com/. There are some pre-coded events written purely to give the list examples to populate with. The user can easily delete these.... Alternatively they can make plans to match the notes, whatever they like.
+The user, after forking the repo, will need to run `npm i` in their console, but once that is undertaken, they will be able to run the app. They will need to access the `seed.sql` file and run the first half of this code if they wish to use my dummy data, for testing purposes.
 
 ## Features
 
-This app features a nice UI, simple design and easy operation.
+This app tries to streamline the user experience. As I have mentioned previously, I have removed as much of the guess-work on the user's part as possible, and tried to make a plain-English, function application.
 
 ## Status
 
-This app presently only works for one individual. For different users to utilize the app, each user would have to fork the repository and deploy their own version of the app. In order to make this marketable, it would at a minimum have to implement some sort of user log-in or authentication process (for example accessing the user's IP address, or accessing sign in credentials with Google sign in).
-
-Additionally, this app doesn't actually interact with a database. As mentioned before, it is a pseudo-database, in that it is a JSON document that is rewritten each time anything changes with a POST or DELETE request. The downside to this is it has no durability - if the server goes down or resets, the updated JSON file (all the user's saved notes) will be lost and will revert back to the version most recently push via GitHub.
-
-This app also does not have the ability to update existing notes (PUT request). In order to initiate this, the HTML and JavaScript files would need to be updated.
+This app could be implemented into a company as is with a very rigid structure without too much more work done. It is not a complete database by any stretch, but as far as knowing who is an employee, and how much they get paid and to who they are responsible.
 
 ### Future Developement
 
-This has mostly been touched on in the _Status_ section, however the next step would be to make notes editable. Without implementing a PUT request, if clicking on the note brought up an editable text (currently it is an element rather than an input), then it could be edited, and a save could be programmed to _overwrite_ the existing note (this would most likely actually simply simultaneously delete the previous note and write a brand new note) to 'update' it. However this would just be using GET, POST, and DELETE, just all at the same time.
+In terms of the app and its usefulness, more data capacity and more tables could be added. For example, there should be a table with employee contact information, employee history with dates, or perhaps a list of projects that employees are working on. It could also be more flexible, having independent salaries, and multiple roles per employee.
+
+As far as the code goes, I would like to split up my `functions.js` file, splitting them up into modules based on category of the functions (this file is 600 lines of code).
 
 ## Contact
 
