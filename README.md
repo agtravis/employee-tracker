@@ -35,11 +35,11 @@ A screen shot of when the user chooses to see all employees.
 
 Here are the package.json dependencies:
 
-"dependencies": {
-"console.table": "^0.10.0",
-"inquirer": "^7.0.4",
-"mysql": "^2.18.1"
-}
+    "dependencies": {
+        "console.table": "^0.10.0",
+        "inquirer": "^7.0.4",
+        "mysql": "^2.18.1"
+    }
 
 This package was written in JavaScript using Node.js, and the core is based around the npm package `Inquirer`, and uses `MySQL` to interact with the database. `console.table` is the package used to restyle the default `console.table` method, and this is optional and user preferential. If the GitHub repo is forked, in order to edit the code the user can run `npm i` to install this dependency.
 
@@ -71,7 +71,7 @@ This function is the entry point for the app. It presents the user with a few ch
 
 In this function, the user choices take them through to general and related areas of information or functions. All the 'view' type actions are grouped together in their own selection menu, so are all the different 'add' functions that are available. The update and delete functions are somewhat similar so they split up in the next sub-menu. They are similar because they require making SQL queries in order to present the user with specific choices (as do some of the view functions, but that would be too much seperation at this point).
 
-Finally, this function has as its default response to end the connection to the database. This will happen when the user chooses exit. This is which the `connection` object is passed around, Since the user may choose to head to this menu and exit at any time.
+Finally, this function has as its default response to end the connection to the database which will happen when the user chooses exit. This is why the `connection` object is passed around, since the user may choose to head to this menu and exit at any time.
 
 Here is an example of a basic SQL query and how it interacts with the JavaScript:
 
@@ -85,6 +85,8 @@ Here is an example of a basic SQL query and how it interacts with the JavaScript
     }
 
 This is actually a function that takes two arguments. The first is the `connection` object, and the second is a string representing the table that is being viewed. Technically it could be used on ANY table since all it does is return ALL columns and records from that table. I only use it twice, because I prefer to return only useful and relevant information to the user. This function uses a `template literal` to insert the table name as a string into the SQL query. Any potential errors are handled per the standard Node.JS syntax, and then the results are logged to the console. Finally the function calls another function to return the user to the previous level of choices.
+
+**NOTE**: This template literal is considered safe, because it does not come from user input, and is not possible to be abused with SQL injection.
 
 Here is a more complicated function:
 
@@ -167,6 +169,8 @@ This app could be implemented into a company as is with a very rigid structure w
 In terms of the app and its usefulness, more data capacity and more tables could be added. For example, there should be a table with employee contact information, employee history with dates, or perhaps a list of projects that employees are working on. It could also be more flexible, having independent salaries, and multiple roles per employee.
 
 As far as the code goes, I would like to split up my `functions.js` file, splitting them up into modules based on category of the functions (this file is 600 lines of code).
+
+There are also a few functions that do not end in a way the user would expect (when the function is complete, the next menu presented two the user is back up two levels instead of one) or provide a 'Go back' option (I initally only thought of using 'Go back' when entering a menu that would result in permanently altered records, but it would be useful to have as an option even when only viewing (`SELECT` only)). I would like to go back and correct this.
 
 ## Contact
 
